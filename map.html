@@ -243,16 +243,20 @@ function goToMarker(key) {
   }
 }
 
-// ------------------ Firebase Test Marker ------------------
-// This runs once when the page loads to check connection
+// ------------------ Firebase Test ------------------
 const testKey = push(ref(db, 'markers')).key;
 set(ref(db, `markers/${testKey}`), {
   lat: 0,
   lng: 0,
   name: "TEST CONNECTION",
   color: "blue"
-}).then(() => console.log("✅ Firebase connection test succeeded!"))
-  .catch(err => console.error("❌ Firebase connection test failed:", err));
+})
+.then(() => alert("✅ Firebase connection test succeeded!"))
+.catch(err => alert("❌ Firebase connection test failed: " + err));
+
+// ------------------ Make functions global for popup buttons ------------------
+window.deleteMarker = deleteMarker;
+window.saveEdit = saveEdit;
 
 </script>
 </body>
