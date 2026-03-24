@@ -128,9 +128,7 @@ function updateMarkerPopup(marker) {
 }
 
 function createMarker(lat, lng, name="Unnamed", color="yellow", key=null) {
-  if (!key) {
-    key = push(ref(db, 'markers')).key; // Firebase key
-  }
+  if (!key) key = push(ref(db, 'markers')).key;
 
   const marker = L.marker([lat, lng], { icon: createIcon(color) }).addTo(map);
   marker.name = name;
@@ -148,7 +146,6 @@ function createMarker(lat, lng, name="Unnamed", color="yellow", key=null) {
   updateMarkerList();
 
   saveMarkerToFirebase(marker);
-
   return marker;
 }
 
@@ -176,11 +173,9 @@ function deleteMarkerFromFirebase(key) {
 onValue(markersRef, snapshot => {
   const data = snapshot.val() || {};
 
-  // Remove deleted markers
   markers.forEach(m => { if (!data[m.key]) { map.removeLayer(m); map.removeLayer(m.label); } });
   markers = markers.filter(m => data[m.key]);
 
-  // Add or update markers
   Object.keys(data).forEach(key => {
     const mData = data[key];
     let marker = markers.find(m => m.key === key);
@@ -190,7 +185,7 @@ onValue(markersRef, snapshot => {
       marker.setLatLng([mData.lat, mData.lng]);
       marker.name = mData.name;
       marker.color = mData.color;
-      marker.setIcon(createIcon(mData.color));
+      marker.setIcon(createIcon(marker.color));
       marker.label.setLatLng(marker.getLatLng());
       marker.label.getElement().innerHTML = mData.name;
       updateMarkerPopup(marker);
@@ -247,6 +242,18 @@ function goToMarker(key) {
     marker.openPopup();
   }
 }
+
+// ------------------ Firebase Test Marker ------------------
+// This runs once when the page loads to check connection
+const testKey = push(ref(db, 'markers')).key;
+set(ref(db, `markers/${testKey}`), {
+  lat: 0,
+  lng: 0,
+  name: "TEST CONNECTION",
+  color: "blue"
+}).then(() => console.log("✅ Firebase connection test succeeded!"))
+  .catch(err => console.error("❌ Firebase connection test failed:", err));
+
 </script>
 </body>
 </html>
