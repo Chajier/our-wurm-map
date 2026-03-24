@@ -60,13 +60,13 @@ import { getDatabase, ref, set, remove, onValue } from "https://www.gstatic.com/
 
 // ------------------ Firebase Setup ------------------
 const firebaseConfig = {
-  apiKey: "AIzaSyBGGVTEXb92E1nt88fLcDH4MjOFG9qtI2E",
-  authDomain: "our-wurm-map.firebaseapp.com",
-  databaseURL: "https://our-wurm-map-default-rtdb.firebaseio.com",
-  projectId: "our-wurm-map",
-  storageBucket: "our-wurm-map.appspot.com",
-  messagingSenderId: "255138987399",
-  appId: "1:255138987399:web:853653dffa9311c6322722"
+  apiKey: "AIzaSyBouZm-4vpPzqOWOBt-PqahnV1-bChf6Rs",
+  authDomain: "our-wurm-map-3fcde.firebaseapp.com",
+  databaseURL: "https://our-wurm-map-3fcde-default-rtdb.firebaseio.com",
+  projectId: "our-wurm-map-3fcde",
+  storageBucket: "our-wurm-map-3fcde.appspot.com",
+  messagingSenderId: "103029165347",
+  appId: "1:103029165347:web:eeba744016040184fd5096"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -149,6 +149,7 @@ function createMarker(lat, lng, name="Unnamed", color="yellow", id=null) {
   return marker;
 }
 
+// ------------------ Map Click ------------------
 map.on("click", e => {
   const name = prompt("Enter marker name:", "Unnamed") || "Unnamed";
   createMarker(e.latlng.lat, e.latlng.lng, name, "yellow");
