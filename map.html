@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My Leaflet Map</title>
+  <meta charset="utf-8" />
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <!-- Fullscreen fix -->
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+
+    #map {
+      height: 100%;
+      width: 100%;
+    }
+
+    /* Deed names above markers */
+    .marker-label {
+      font-size: 10px;
+      font-weight: bold;
+      text-align: center;
+      color: black;
+      background: rgba(255,255,255,0.7);
+      border-radius: 2px;
+      padding: 1px 2px;
+      pointer-events: none;
+      white-space: nowrap;
+      transform: translate(-50%, -120%);
+    }
+
+    #searchBox {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+      background: white;
+      padding: 5px;
+      border-radius: 5px;
+      box-shadow: 0 0 3px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body>
+
+<div id="map"></div>
+<div id="searchBox">
+  <input type="text" id="searchInput" placeholder="Search marker...">
+  <button onclick="searchMarker()">Go</button>
+  <br>
+  <select id="markerList" size="5" style="width: 150px;" onchange="goToMarker(this.value)"></select>
+</div>
+
+<script>
+  var imageWidth = 4096;
+  var imageHeight = 4096;
+
+  var map = L.map('map', {
+    crs: L.CRS.Simple,
+    minZoom: -2
+  });
+
+  var bounds = [[0, 0], [imageHeight, imageWidth]];
+  L.imageOverlay('Cadence-terrain-20260224.png', bounds).addTo(map);
+  map.fitBounds(bounds);
+
+  var markers = [];
+
+  // 🎨 Create colored icon
+  function createIcon(color) {
+    return L.divIcon({
+      className: '',
+      html: `<div style="
+        background:${color};
+        width:14px;
+        height:14px;
+        border-radius:50%;
+        border:2px solid black;
+      "></div>`,
+      iconSize: [18, 18]
+    });
+  }
+
+  // 💾 Save markers
+  function saveMarkers() {
+    var data = markers.map(m => ({
+      lat: m.getLatLng().lat,
+      lng: m.getLatLng().lng,
+      name: m.name,
+      color: m.color
+    }));
+    localStorage.setItem("mapMarkers", JSON.stringify(data));
+  }
+
+  // 🔄 Load markers
+  function loadMarkers() {
+    var saved = JSON.parse(localStorage.getItem("mapMarkers") || "[]");
+    saved.forEach(data => {
+      createMarker(data.lat, data.lng, data.name, data.color);
+    });
+  }
+
+  // 🧱 Create marker function
+  function createMarker(lat, lng, name = "Unnamed", color = "yellow") {
+    var marker = L.marker([lat, lng], { icon: createIcon(color) }).addTo(map);
+
+    marker.name = name;
+    marker.color = color;
+
+    // Add deed name above marker
+    var label = L.marker([lat, lng], {
+      icon: L.divIcon({
+        className: 'marker-label',
+        html: name,
+        iconSize: [100, 20]
+      }),
+      interactive: false
+    }).addTo(map);
+
+    marker.label = label;
+
+    function updatePopup() {
+      marker.bindPopup(`
+        <b>${marker.name}</b><br>
+        (${Math.round(lat)}, ${Math.round(lng)})<br><br>
+        Name: <input id="nameInput-${marker._leaflet_id}" value="${marker.name}"><br>
+        Color: 
+        <select id="colorInput-${marker._leaflet_id}">
+          <option ${marker.color==="red"?"selected":""}>red</option>
+          <option ${marker.color==="blue"?"selected":""}>blue</option>
+          <option ${marker.color==="green"?"selected":""}>green</option>
+          <option ${marker.color==="yellow"?"selected":""}>yellow</option>
+          <option ${marker.color==="purple"?"selected":""}>purple</option>
+        </select><br><br>
+        <button onclick="saveEdit(${marker._leaflet_id})">Save</button>
+        <button onclick="deleteMarker(${marker._leaflet_id})">Delete</button>
+      `);
+    }
+
+    updatePopup();
+    markers.push(marker);
+    updateMarkerList();
+  }
+
+  // ➕ Add marker on click with prompt
+  map.on('click', function(e) {
+    var name = prompt("Enter marker name:", "Unnamed");
+    if (name === null) name = "Unnamed";
+    createMarker(e.latlng.lat, e.latlng.lng, name);
+    saveMarkers();
+  });
+
+  // ✏️ Save edits
+  function saveEdit(id) {
+    var marker = markers.find(m => m._leaflet_id === id);
+    if (!marker) return;
+
+    var newName = document.getElementById(`nameInput-${id}`).value;
+    var newColor = document.getElementById(`colorInput-${id}`).value;
+
+    marker.name = newName;
+    marker.color = newColor;
+    marker.setIcon(createIcon(newColor));
+
+    // Update label
+    marker.label.setLatLng(marker.getLatLng());
+    marker.label.getElement().innerHTML = newName;
+
+    marker.closePopup();
+    saveMarkers();
+    updateMarkerList();
+  }
+
+  // ❌ Delete marker
+  function deleteMarker(id) {
+    var index = markers.findIndex(m => m._leaflet_id === id);
+    if (index === -1) return;
+
+    map.removeLayer(markers[index]);
+    map.removeLayer(markers[index].label);
+    markers.splice(index, 1);
+    saveMarkers();
+    updateMarkerList();
+  }
+
+  // 🔍 Search marker by input
+  function searchMarker() {
+    var term = document.getElementById("searchInput").value.toLowerCase();
+    var marker = markers.find(m => m.name.toLowerCase() === term);
+    if (marker) {
+      map.setView(marker.getLatLng(), map.getZoom());
+      marker.openPopup();
+    } else {
+      alert("Marker not found!");
+    }
+  }
+
+  // 📜 Go to marker from list
+  function goToMarker(index) {
+    var marker = markers[index];
+    if (marker) {
+      map.setView(marker.getLatLng(), map.getZoom());
+      marker.openPopup();
+    }
+  }
+
+  // 📋 Update marker list dropdown
+  function updateMarkerList() {
+    var list = document.getElementById("markerList");
+    list.innerHTML = "";
+    markers.forEach((m, i) => {
+      var option = document.createElement("option");
+      option.value = i;
+      option.text = m.name;
+      list.appendChild(option);
+    });
+  }
+
+  loadMarkers();
+  updateMarkerList();
+</script>
+
+</body>
+</html>
