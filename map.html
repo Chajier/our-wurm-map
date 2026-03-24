@@ -243,7 +243,7 @@ function goToMarker(key) {
   }
 }
 
-// ------------------ Firebase Test ------------------
+// ------------------ Firebase Test (auto-remove) ------------------
 const testKey = push(ref(db, 'markers')).key;
 set(ref(db, `markers/${testKey}`), {
   lat: 0,
@@ -251,7 +251,11 @@ set(ref(db, `markers/${testKey}`), {
   name: "TEST CONNECTION",
   color: "blue"
 })
-.then(() => alert("✅ Firebase connection test succeeded!"))
+.then(() => {
+  alert("✅ Firebase connection test succeeded!");
+  // Delete test marker immediately
+  remove(ref(db, `markers/${testKey}`));
+})
 .catch(err => alert("❌ Firebase connection test failed: " + err));
 
 // ------------------ Make functions global for popup buttons ------------------
