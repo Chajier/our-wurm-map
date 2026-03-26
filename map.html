@@ -16,12 +16,13 @@
       font-weight: bold;
       text-align: center;
       color: black;
-      background: rgba(255,255,255,0.7);
-      border-radius: 2px;
-      padding: 1px 2px;
+      background: transparent;
+      border: none;
+      padding: 0;
       pointer-events: none;
       white-space: nowrap;
       transform: translate(-50%, -120%);
+      text-shadow: 1px 1px 2px white;
     }
 
     #searchBox {
@@ -97,16 +98,27 @@ function createIcon(color, pulse=false) {
   });
 }
 
-// ------------------ List ------------------
-function updateMarkerList() {
+// ------------------ SORTED LIST ------------------
+function updateMarkerList(filterText = "") {
   const list = document.getElementById("markerList");
   list.innerHTML = "";
-  markers.forEach(m => {
+
+  const sorted = [...markers]
+    .filter(m => m.name.toLowerCase().includes(filterText))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  sorted.forEach(m => {
     const option = document.createElement("option");
     option.value = m.key;
     option.text = m.name;
     list.appendChild(option);
   });
+}
+
+// ------------------ LIVE SEARCH FILTER ------------------
+function filterMarkerList() {
+  const term = document.getElementById("searchInput").value.toLowerCase().trim();
+  updateMarkerList(term);
 }
 
 // ------------------ Marker ------------------
@@ -141,8 +153,6 @@ function createMarker(lat, lng, name="Unnamed", color="yellow", key=null) {
     <button onclick="deleteMarker('${key}')">Delete</button>
   `);
 
-  marker.on("popupopen", () => marker.getElement()?.focus?.());
-
   markers.push(marker);
   updateMarkerList();
   saveMarkerToFirebase(marker);
@@ -150,13 +160,13 @@ function createMarker(lat, lng, name="Unnamed", color="yellow", key=null) {
   return marker;
 }
 
-// ------------------ Click ------------------
+// ------------------ CLICK ------------------
 map.on("click", e => {
   const name = prompt("Enter marker name:", "Unnamed") || "Unnamed";
   createMarker(e.latlng.lat, e.latlng.lng, name, "yellow");
 });
 
-// ------------------ Firebase ------------------
+// ------------------ FIREBASE ------------------
 function saveMarkerToFirebase(marker) {
   set(ref(db, `markers/${marker.key}`), {
     lat: marker.getLatLng().lat,
@@ -170,7 +180,7 @@ function deleteMarkerFromFirebase(key) {
   remove(ref(db, `markers/${key}`));
 }
 
-// ------------------ Sync ------------------
+// ------------------ SYNC ------------------
 onValue(markersRef, snapshot => {
   const data = snapshot.val() || {};
 
@@ -199,10 +209,10 @@ onValue(markersRef, snapshot => {
     }
   });
 
-  updateMarkerList();
+  updateMarkerList(document.getElementById("searchInput").value.toLowerCase());
 });
 
-// ------------------ Edit/Delete ------------------
+// ------------------ EDIT/DELETE ------------------
 function saveEdit(key) {
   const marker = markers.find(m => m.key === key);
   if (!marker) return;
@@ -215,7 +225,7 @@ function saveEdit(key) {
   marker.closePopup();
 
   saveMarkerToFirebase(marker);
-  updateMarkerList();
+  updateMarkerList(document.getElementById("searchInput").value.toLowerCase());
 }
 
 function deleteMarker(key) {
@@ -228,10 +238,10 @@ function deleteMarker(key) {
   markers = markers.filter(m => m.key !== key);
 
   deleteMarkerFromFirebase(key);
-  updateMarkerList();
+  updateMarkerList(document.getElementById("searchInput").value.toLowerCase());
 }
 
-// ------------------ SEARCH (FIXED) ------------------
+// ------------------ SEARCH ------------------
 function searchMarker() {
   const term = document.getElementById("searchInput").value.toLowerCase().trim();
 
@@ -251,6 +261,7 @@ function searchMarker() {
   setTimeout(() => marker.setIcon(createIcon(marker.color)), 1200);
 }
 
+// ------------------ GO TO ------------------
 function goToMarker(key) {
   const marker = markers.find(m => m.key === key);
   if (marker) {
@@ -259,7 +270,10 @@ function goToMarker(key) {
   }
 }
 
-// ------------------ GLOBAL EXPORT FIX ------------------
+// ------------------ LIVE INPUT LISTENER ------------------
+document.getElementById("searchInput").addEventListener("input", filterMarkerList);
+
+// ------------------ GLOBALS ------------------
 window.searchMarker = searchMarker;
 window.goToMarker = goToMarker;
 window.deleteMarker = deleteMarker;
