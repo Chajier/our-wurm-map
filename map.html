@@ -98,14 +98,22 @@ function createIcon(color, pulse=false) {
   });
 }
 
-// ------------------ SORTED LIST ------------------
+// ------------------ SORTED + FILTERED LIST ------------------
 function updateMarkerList(filterText = "") {
   const list = document.getElementById("markerList");
   list.innerHTML = "";
 
   const sorted = [...markers]
     .filter(m => m.name.toLowerCase().includes(filterText))
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort((a, b) => {
+      const aStartsLetter = /^[a-z]/i.test(a.name);
+      const bStartsLetter = /^[a-z]/i.test(b.name);
+
+      if (aStartsLetter && !bStartsLetter) return -1;
+      if (!aStartsLetter && bStartsLetter) return 1;
+
+      return a.name.localeCompare(b.name);
+    });
 
   sorted.forEach(m => {
     const option = document.createElement("option");
@@ -115,7 +123,7 @@ function updateMarkerList(filterText = "") {
   });
 }
 
-// ------------------ LIVE SEARCH FILTER ------------------
+// ------------------ LIVE SEARCH ------------------
 function filterMarkerList() {
   const term = document.getElementById("searchInput").value.toLowerCase().trim();
   updateMarkerList(term);
@@ -160,13 +168,13 @@ function createMarker(lat, lng, name="Unnamed", color="yellow", key=null) {
   return marker;
 }
 
-// ------------------ CLICK ------------------
+// ------------------ Click ------------------
 map.on("click", e => {
   const name = prompt("Enter marker name:", "Unnamed") || "Unnamed";
   createMarker(e.latlng.lat, e.latlng.lng, name, "yellow");
 });
 
-// ------------------ FIREBASE ------------------
+// ------------------ Firebase ------------------
 function saveMarkerToFirebase(marker) {
   set(ref(db, `markers/${marker.key}`), {
     lat: marker.getLatLng().lat,
@@ -180,7 +188,7 @@ function deleteMarkerFromFirebase(key) {
   remove(ref(db, `markers/${key}`));
 }
 
-// ------------------ SYNC ------------------
+// ------------------ Sync ------------------
 onValue(markersRef, snapshot => {
   const data = snapshot.val() || {};
 
@@ -212,7 +220,7 @@ onValue(markersRef, snapshot => {
   updateMarkerList(document.getElementById("searchInput").value.toLowerCase());
 });
 
-// ------------------ EDIT/DELETE ------------------
+// ------------------ Edit/Delete ------------------
 function saveEdit(key) {
   const marker = markers.find(m => m.key === key);
   if (!marker) return;
@@ -270,7 +278,7 @@ function goToMarker(key) {
   }
 }
 
-// ------------------ LIVE INPUT LISTENER ------------------
+// ------------------ LIVE INPUT ------------------
 document.getElementById("searchInput").addEventListener("input", filterMarkerList);
 
 // ------------------ GLOBALS ------------------
